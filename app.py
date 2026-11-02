@@ -5,9 +5,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 # Experiment 9: Transformer-Based LLM Chatbot
 # Name: Mohamed Aashik S
 # Roll No: 24BAD072
-# Model: Qwen2.5-0.5B-Instruct
+# Model: SmolLM2-135M-Instruct
 
-MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
 
 SYSTEM_PROMPT = (
     "You are a helpful, accurate, and friendly AI assistant. "
@@ -54,7 +54,7 @@ def prepare_messages(message, history):
 
 
 def respond(message, history, tokenizer, model):
-    """Generate an answer using Qwen2.5-0.5B-Instruct."""
+    """Generate an answer using SmolLM2-135M-Instruct."""
     if not message or not message.strip():
         return "Please enter a question."
 
@@ -69,13 +69,13 @@ def respond(message, history, tokenizer, model):
         prompt,
         return_tensors="pt",
         truncation=True,
-        max_length=3500
+        max_length=1536
     ).to(DEVICE)
 
     with torch.inference_mode():
         output_ids = model.generate(
             **inputs,
-            max_new_tokens=220,
+            max_new_tokens=120,
             do_sample=True,
             temperature=0.3,
             top_p=0.85,
@@ -99,7 +99,7 @@ def respond(message, history, tokenizer, model):
 
 st.set_page_config(page_title="Transformer-Based LLM Chatbot", page_icon="🤖")
 st.title("Transformer-Based LLM Chatbot")
-st.caption("Experiment 9 | Roll No: 24BAD072 | Powered by Qwen2.5-0.5B-Instruct")
+st.caption("Experiment 9 | Roll No: 24BAD072 | Powered by SmolLM2-135M-Instruct")
 
 tokenizer, model = load_model()
 
