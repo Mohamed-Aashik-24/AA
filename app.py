@@ -101,8 +101,6 @@ st.set_page_config(page_title="Transformer-Based LLM Chatbot", page_icon="🤖")
 st.title("Transformer-Based LLM Chatbot")
 st.caption("Experiment 9 | Roll No: 24BAD072 | Powered by SmolLM2-135M-Instruct")
 
-tokenizer, model = load_model()
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -118,6 +116,13 @@ if prompt := st.chat_input("Ask a question..."):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             history = st.session_state.messages[:-1]
-            answer = respond(prompt, history, tokenizer, model)
+            try:
+                tokenizer, model = load_model()
+                answer = respond(prompt, history, tokenizer, model)
+            except Exception as error:
+                answer = (
+                    "The language model could not start on this deployment. "
+                    f"Details: {error}"
+                )
         st.markdown(answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
