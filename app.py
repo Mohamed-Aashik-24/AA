@@ -24,14 +24,24 @@ def get_token():
 
 def local_fallback(message):
     """Keep the app useful when the hosted model is unavailable."""
-    question = message.lower()
-    if "artificial intelligence" in question or question == "what is ai?":
+    question = " ".join(message.lower().strip().split())
+    if question in {"hi", "hello", "hey", "hey there"}:
+        return "Hello! Ask me about artificial intelligence, machine learning, Transformers, or Python."
+    if "difference" in question and "ai" in question and "machine learning" in question:
+        return "AI is the broader goal of making machines perform intelligent tasks. Machine learning is one way to achieve AI by learning patterns from data instead of using only hand-written rules."
+    if "artificial intelligence" in question or question in {"what is ai", "what is ai?"}:
         return "Artificial intelligence is the field of building systems that can perform tasks that usually require human intelligence, such as understanding language, recognizing images, and making predictions."
+    if "deep learning" in question:
+        return "Deep learning is a type of machine learning that uses neural networks with many layers. It is commonly used for images, speech, and language."
     if "machine learning" in question:
         return "Machine learning is a type of artificial intelligence in which a system learns patterns from examples and uses those patterns to make predictions or decisions."
     if "transformer" in question:
         return "A Transformer processes relationships between words using attention. This lets it weigh the most relevant parts of the input while generating an answer."
-    return "I am ready to help. Add an HF_TOKEN secret in Streamlit to enable generated answers, or ask about AI, machine learning, or Transformers."
+    if "python" in question:
+        return "Python is a readable, general-purpose programming language used for web development, automation, data science, and artificial intelligence."
+    if "what can you do" in question or "help" in question:
+        return "I can explain AI and programming concepts, compare technologies, and answer questions about machine learning and Transformers."
+    return f"You asked: {message.strip()}\n\nI do not have the hosted language model enabled yet. Add an HF_TOKEN secret in Streamlit for open-ended answers."
 
 def generate_answer(message, history):
     """Call Hugging Face without loading a model into Streamlit memory."""
