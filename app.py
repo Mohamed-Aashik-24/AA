@@ -20,7 +20,7 @@ API_URL = f"https://api-inference.huggingface.co/models/{MODEL_NAME}"
 
 def get_token():
     """Read an optional Hugging Face token without requiring one to start."""
-    return os.getenv("HF_TOKEN", st.secrets.get("HF_TOKEN", ""))
+    return os.getenv("HF_TOKEN") or st.secrets.get("HF_TOKEN", "")
 
 def local_fallback(message):
     """Keep the app useful when the hosted model is unavailable."""
@@ -73,8 +73,8 @@ def generate_answer(message, history):
         result = response.json()
         if isinstance(result, list) and result and result[0].get("generated_text"):
             return result[0]["generated_text"].strip()
-    except requests.RequestException:
-        pass
+    except requests.RequestException as error:
+        return f"I could not reach the hosted model ({error}).\n\n{local_fallback(message)}"
     return local_fallback(message)
 
 st.set_page_config(page_title="Transformer-Based LLM Chatbot", page_icon="🤖")
@@ -88,14 +88,20 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Ask a question..."):
+prompt = st.chat_input("Ask a question...")
+if prompt:
+    st.session_state.pending_prompt = prompt
+    st.rerun()
+
+pending_prompt = st.session_state.pop("pending_prompt", None)
+if pending_prompt:
     history = st.session_state.messages.copy()
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": pending_prompt})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(pending_prompt)
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            answer = generate_answer(prompt, history)
+            answer = generate_answer(pending_prompt, history)
         st.markdown(answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
