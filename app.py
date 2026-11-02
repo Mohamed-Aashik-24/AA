@@ -5,9 +5,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 # Experiment 9: Transformer-Based LLM Chatbot
 # Name: Mohamed Aashik S
 # Roll No: 24BAD072
-# Model: Qwen2.5-1.5B-Instruct
+# Model: Qwen2.5-0.5B-Instruct
 
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 
 SYSTEM_PROMPT = (
     "You are a helpful, accurate, and friendly AI assistant. "
@@ -54,7 +54,7 @@ def prepare_messages(message, history):
 
 
 def respond(message, history, tokenizer, model):
-    """Generate an answer using Qwen2.5-1.5B-Instruct."""
+    """Generate an answer using Qwen2.5-0.5B-Instruct."""
     if not message or not message.strip():
         return "Please enter a question."
 
@@ -99,7 +99,7 @@ def respond(message, history, tokenizer, model):
 
 st.set_page_config(page_title="Transformer-Based LLM Chatbot", page_icon="🤖")
 st.title("Transformer-Based LLM Chatbot")
-st.caption("Experiment 9 | Roll No: 24BAD072 | Powered by Qwen2.5-1.5B-Instruct")
+st.caption("Experiment 9 | Roll No: 24BAD072 | Powered by Qwen2.5-0.5B-Instruct")
 
 tokenizer, model = load_model()
 
@@ -121,6 +121,3 @@ if prompt := st.chat_input("Ask a question..."):
             answer = respond(prompt, history, tokenizer, model)
         st.markdown(answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
-
-if __name__ == "__main__":
-    demo.launch()
