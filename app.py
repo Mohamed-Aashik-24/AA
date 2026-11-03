@@ -1,52 +1,80 @@
 import os
 import re
 
-import streamlit as st
 import requests
+import streamlit as st
 
-# Experiment 9: Transformer-Based LLM Chatbot
-# Name: Mohamed Aashik S
-# Roll No: 24BAD072
-# Model: SmolLM2-135M-Instruct
 
 MODEL_NAME = "HuggingFaceTB/SmolLM2-135M-Instruct"
-
+API_URL = f"https://api-inference.huggingface.co/models/{MODEL_NAME}"
 SYSTEM_PROMPT = (
     "You are a helpful, accurate, and friendly AI assistant. "
-    "Answer the user's question directly in clear, simple English. "
-    "Explain technical concepts step by step when useful and include "
-    "relevant examples. Do not invent facts. If you are unsure, say so."
+    "Answer the user's question directly in clear, simple English."
 )
 
-API_URL = f"https://api-inference.huggingface.co/models/{MODEL_NAME}"
 
 def get_token():
-    """Read an optional Hugging Face token without requiring one to start."""
-    return os.getenv("HF_TOKEN") or st.secrets.get("HF_TOKEN", "")
+    token = os.getenv("HF_TOKEN", "").strip()
+    if token:
+        return token
+    try:
+        return str(st.secrets.get("HF_TOKEN", "")).strip()
+    except (FileNotFoundError, KeyError):
+        return ""
+
 
 def local_fallback(message):
-    """Keep the app useful when the hosted model is unavailable."""
     question = re.sub(r"[^a-z0-9]+", " ", message.lower()).strip()
+    words = set(question.split())
+
     if question in {"hi", "hello", "hey", "hey there"}:
-        return "Hello! Ask me about artificial intelligence, machine learning, Transformers, or Python."
-    if "difference" in question and "ai" in question and ("machine learning" in question or " ml " in f" {question} "):
-        return "AI is the broader goal of making machines perform intelligent tasks. Machine learning is one way to achieve AI by learning patterns from data instead of using only hand-written rules."
-    if "artificial intelligence" in question or question in {"what is ai", "ai meaning", "define ai"}:
-        return "Artificial intelligence is the field of building systems that can perform tasks that usually require human intelligence, such as understanding language, recognizing images, and making predictions."
-    if "deep learning" in question or question in {"what is dl", "dl meaning", "define dl"}:
-        return "Deep learning is a type of machine learning that uses neural networks with many layers. It is commonly used for images, speech, and language."
-    if "machine learning" in question or question in {"what is ml", "what is an ml", "ml meaning", "define ml"}:
-        return "Machine learning is a type of artificial intelligence in which a system learns patterns from examples and uses those patterns to make predictions or decisions."
+        return "Hello! Ask me about AI, machine learning, Transformers, or Python."
+    if "difference" in words and "ai" in words and (
+        "machine" in words or "ml" in words
+    ):
+        return (
+            "AI is the broader goal of making machines perform intelligent tasks. "
+            "Machine learning is one way to achieve AI by learning patterns from data."
+        )
+    if "artificial intelligence" in question or words.intersection({"ai", "artificial"}):
+        return (
+            "Artificial intelligence is the field of building systems that perform "
+            "tasks that usually require human intelligence, such as understanding "
+            "language, recognizing images, and making predictions."
+        )
+    if "deep learning" in question or "dl" in words:
+        return (
+            "Deep learning is a type of machine learning that uses neural networks "
+            "with many layers. It is commonly used for images, speech, and language."
+        )
+    if "machine learning" in question or "ml" in words:
+        return (
+            "Machine learning is a type of artificial intelligence in which a system "
+            "learns patterns from examples and uses them to make predictions."
+        )
     if "transformer" in question:
-        return "A Transformer processes relationships between words using attention. This lets it weigh the most relevant parts of the input while generating an answer."
+        return (
+            "A Transformer uses attention to identify relationships between words. "
+            "This helps it understand and generate language."
+        )
     if "python" in question:
-        return "Python is a readable, general-purpose programming language used for web development, automation, data science, and artificial intelligence."
-    if "what can you do" in question or "help" in question:
-        return "I can explain AI and programming concepts, compare technologies, and answer questions about machine learning and Transformers."
-    return f"You asked: {message.strip()}\n\nI do not have the hosted language model enabled yet. Add an HF_TOKEN secret in Streamlit for open-ended answers."
+        return (
+            "Python is a readable, general-purpose programming language used for "
+            "automation, data science, web development, and AI."
+        )
+    if "help" in words or "what can you do" in question:
+        return (
+            "I can explain AI and programming concepts, compare technologies, and "
+            "answer questions about machine learning and Transformers."
+        )
+    return (
+        f"You asked: {message.strip()}\n\n"
+        "Add an HF_TOKEN secret in Streamlit for open-ended answers. "
+        "I can answer questions about AI, ML, DL, Transformers, and Python now."
+    )
+
 
 def generate_answer(message, history):
-    """Call Hugging Face without loading a model into Streamlit memory."""
     token = get_token()
     if not token:
         return local_fallback(message)
@@ -55,14 +83,13 @@ def generate_answer(message, history):
     for item in history[-6:]:
         conversation.append(f"{item['role'].title()}: {item['content']}")
     conversation.append(f"User: {message}")
-    prompt = "\n".join(conversation) + "\nAssistant:"
 
     try:
         response = requests.post(
             API_URL,
             headers={"Authorization": f"Bearer {token}"},
             json={
-                "inputs": prompt,
+                "inputs": "\n".join(conversation) + "\nAssistant:",
                 "parameters": {
                     "max_new_tokens": 120,
                     "temperature": 0.3,
@@ -73,11 +100,14 @@ def generate_answer(message, history):
         )
         response.raise_for_status()
         result = response.json()
-        if isinstance(result, list) and result and result[0].get("generated_text"):
-            return result[0]["generated_text"].strip()
-    except requests.RequestException as error:
-        return f"I could not reach the hosted model ({error}).\n\n{local_fallback(message)}"
+        if isinstance(result, list) and result:
+            answer = result[0].get("generated_text")
+            if answer:
+                return answer.strip()
+    except (requests.RequestException, ValueError):
+        pass
     return local_fallback(message)
+
 
 st.set_page_config(page_title="Transformer-Based LLM Chatbot", page_icon="🤖")
 st.title("Transformer-Based LLM Chatbot")
@@ -92,18 +122,12 @@ for message in st.session_state.messages:
 
 prompt = st.chat_input("Ask a question...")
 if prompt:
-    st.session_state.pending_prompt = prompt
-    st.rerun()
-
-pending_prompt = st.session_state.pop("pending_prompt", None)
-if pending_prompt:
     history = st.session_state.messages.copy()
-    st.session_state.messages.append({"role": "user", "content": pending_prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(pending_prompt)
-
+        st.markdown(prompt)
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            answer = generate_answer(pending_prompt, history)
+            answer = generate_answer(prompt, history)
         st.markdown(answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
